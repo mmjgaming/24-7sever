@@ -1,4 +1,3 @@
-
 const mineflayer = require("mineflayer");
 
 const config = {
@@ -19,7 +18,7 @@ function createBot() {
 
   botRunning = true;
   console.log("🚀 Starting bot...");
-  console.log(Connecting to: ${config.host}:${config.port});
+  console.log(`Connecting to: ${config.host}:${config.port}`);
 
   let bot;
   let authed = false;
@@ -29,7 +28,7 @@ function createBot() {
       host: config.host,
       port: config.port,
       username: config.username,
-      version: "1.21.1",
+      version: "1.20.1",
       auth: "offline"
     });
   } catch (err) {
@@ -55,14 +54,14 @@ function createBot() {
 
     if (!authed && text.includes("register")) {
       setTimeout(() => {
-        bot.chat(/register ${config.password} ${config.password});
+        bot.chat(`/register ${config.password} ${config.password}`);
         console.log("📌 Sent /register");
       }, 4000);
     }
 
     if (!authed && text.includes("login")) {
       setTimeout(() => {
-        bot.chat(/login ${config.password});
+        bot.chat(`/login ${config.password}`);
         console.log("📌 Sent /login");
       }, 4000);
     }
@@ -117,7 +116,7 @@ function createBot() {
 
     const delay = 15000; // 15 seconds
 
-    console.log(🔁 Reconnecting in ${delay / 1000}s...);
+    console.log(`🔁 Reconnecting in ${delay / 1000}s...`);
 
     setTimeout(() => {
       reconnecting = false;
@@ -135,4 +134,4 @@ require("http")
     res.writeHead(200);
     res.end("Bot is running");
   })
-  .listen(process.env.PORT || 3000); 
+  .listen(process.env.PORT || 3000);
