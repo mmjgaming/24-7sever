@@ -1,6 +1,5 @@
 const mineflayer = require("mineflayer");
 
-// ✅ STRICT ENV CONFIG (no random values)
 const config = {
   host: process.env.HOST,
   port: parseInt(process.env.MC_PORT) || 25565,
@@ -19,10 +18,7 @@ let reconnecting = false;
 let authed = false;
 
 function createBot() {
-  if (botRunning) {
-    console.log("⚠️ Bot already running, skipping...");
-    return;
-  }
+  if (botRunning) return;
 
   botRunning = true;
   authed = false;
@@ -36,8 +32,8 @@ function createBot() {
       host: config.host,
       port: config.port,
       username: config.username,
-      version: "1.21.1",
       auth: "offline"
+      // ❌ removed version (auto detect)
     });
   } catch (err) {
     console.log("💥 Creation failed:", err.message);
@@ -45,17 +41,14 @@ function createBot() {
     return setTimeout(createBot, 30000);
   }
 
-  // ✅ LOGIN
   bot.on("login", () => {
     console.log("✅ Logged in");
   });
 
-  // 🎮 SPAWN
   bot.on("spawn", () => {
     console.log("🎮 Spawned");
   });
 
-  // 💬 AUTH SYSTEM
   bot.on("messagestr", (msg) => {
     const text = msg.toLowerCase();
     console.log("📩", text);
@@ -63,21 +56,19 @@ function createBot() {
     if (!authed && text.includes("register")) {
       setTimeout(() => {
         bot.chat(`/register ${config.password} ${config.password}`);
-        console.log("📌 /register sent");
       }, 4000);
     }
 
     if (!authed && text.includes("login")) {
       setTimeout(() => {
         bot.chat(`/login ${config.password}`);
-        console.log("📌 /login sent");
       }, 4000);
     }
 
     if (
       text.includes("logged in") ||
-      text.includes("successfully") ||
-      text.includes("welcome")
+      text.includes("welcome") ||
+      text.includes("success")
     ) {
       if (!authed) {
         authed = true;
@@ -87,7 +78,6 @@ function createBot() {
     }
   });
 
-  // 🧠 AFK SYSTEM
   function startAfk() {
     console.log("🚶 AFK started");
 
@@ -102,37 +92,33 @@ function createBot() {
     }, 30000);
   }
 
-  // ❌ KICKED
   bot.on("kicked", (reason) => {
     console.log("🚫 Kicked:", reason);
   });
 
-  // ⚠️ ERROR
   bot.on("error", (err) => {
     console.log("⚠️ Error:", err.message);
   });
 
-  // 🔁 CLEAN DISCONNECT + SAFE RECONNECT
   bot.on("end", () => {
     console.log("❌ Disconnected");
 
     botRunning = false;
     authed = false;
 
-    // ✅ ensure old session is CLOSED
-    if (bot) {
-      try {
+    try {
+      if (bot) {
         bot.removeAllListeners();
         bot.quit();
-      } catch (e) {}
-    }
+      }
+    } catch (e) {}
 
     bot = null;
 
     if (reconnecting) return;
     reconnecting = true;
 
-    const delay = 45000; // ⏱️ longer delay = prevents duplicate session
+    const delay = 45000;
 
     console.log(`🔁 Reconnecting in ${delay / 1000}s...`);
 
@@ -143,13 +129,11 @@ function createBot() {
   });
 }
 
-// 🚀 START (important delay)
-setTimeout(createBot, 20000);
+setTimeout(createBot, 15000);
 
-// 🌐 KEEP RAILWAY ALIVE
+// keep alive
 require("http")
   .createServer((req, res) => {
-    res.writeHead(200);
     res.end("Bot is running");
   })
   .listen(process.env.PORT || 3000);
