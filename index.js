@@ -16,7 +16,7 @@ function createBot() {
     host: config.host,
     port: config.port,
     username: config.username,
-    version: false
+    version: "1.20.1"
   });
 
   // 🔌 Connected
