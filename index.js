@@ -1,5 +1,6 @@
 const mineflayer = require("mineflayer");
 
+// ✅ STRICT ENV CONFIG (no random values)
 const config = {
   host: process.env.HOST,
   port: parseInt(process.env.MC_PORT) || 25565,
@@ -7,8 +8,15 @@ const config = {
   password: process.env.PASSWORD
 };
 
+if (!config.host || !config.username) {
+  console.log("❌ Missing ENV variables (HOST / USERNAME)");
+  process.exit(1);
+}
+
+let bot = null;
 let botRunning = false;
 let reconnecting = false;
+let authed = false;
 
 function createBot() {
   if (botRunning) {
@@ -17,11 +25,11 @@ function createBot() {
   }
 
   botRunning = true;
-  console.log("🚀 Starting bot...");
-  console.log(`Connecting to: ${config.host}:${config.port}`);
+  authed = false;
 
-  let bot;
-  let authed = false;
+  console.log("🚀 Starting bot...");
+  console.log(`🌐 ${config.host}:${config.port}`);
+  console.log(`👤 Username: ${config.username}`);
 
   try {
     bot = mineflayer.createBot({
@@ -32,22 +40,22 @@ function createBot() {
       auth: "offline"
     });
   } catch (err) {
-    console.log("💥 Bot creation failed:", err.message);
+    console.log("💥 Creation failed:", err.message);
     botRunning = false;
-    return setTimeout(createBot, 10000);
+    return setTimeout(createBot, 30000);
   }
 
-  // ✅ Login
+  // ✅ LOGIN
   bot.on("login", () => {
-    console.log("✅ Logged into server");
+    console.log("✅ Logged in");
   });
 
-  // 🎮 Spawn
+  // 🎮 SPAWN
   bot.on("spawn", () => {
-    console.log("🎮 Spawned — waiting for login/register...");
+    console.log("🎮 Spawned");
   });
 
-  // 💬 AUTH SYSTEM (FIXED)
+  // 💬 AUTH SYSTEM
   bot.on("messagestr", (msg) => {
     const text = msg.toLowerCase();
     console.log("📩", text);
@@ -55,66 +63,76 @@ function createBot() {
     if (!authed && text.includes("register")) {
       setTimeout(() => {
         bot.chat(`/register ${config.password} ${config.password}`);
-        console.log("📌 Sent /register");
+        console.log("📌 /register sent");
       }, 4000);
     }
 
     if (!authed && text.includes("login")) {
       setTimeout(() => {
         bot.chat(`/login ${config.password}`);
-        console.log("📌 Sent /login");
+        console.log("📌 /login sent");
       }, 4000);
     }
 
-    // ✅ detect successful login
     if (
       text.includes("logged in") ||
       text.includes("successfully") ||
       text.includes("welcome")
     ) {
-      authed = true;
-      console.log("✅ AUTH COMPLETE");
-
-      startAfk(bot);
+      if (!authed) {
+        authed = true;
+        console.log("✅ AUTH COMPLETE");
+        startAfk();
+      }
     }
   });
 
-  // 🧠 AFK AFTER LOGIN ONLY
-  function startAfk(bot) {
-    console.log("🚶 Starting AFK system");
+  // 🧠 AFK SYSTEM
+  function startAfk() {
+    console.log("🚶 AFK started");
 
     setInterval(() => {
-      if (!bot.entity) return;
+      if (!bot || !bot.entity) return;
 
       bot.setControlState("jump", true);
       setTimeout(() => bot.setControlState("jump", false), 400);
 
       bot.setControlState("forward", true);
       setTimeout(() => bot.setControlState("forward", false), 800);
-
     }, 30000);
   }
 
-  // ❌ Kicked
+  // ❌ KICKED
   bot.on("kicked", (reason) => {
     console.log("🚫 Kicked:", reason);
   });
 
-  // ⚠️ Error
+  // ⚠️ ERROR
   bot.on("error", (err) => {
     console.log("⚠️ Error:", err.message);
   });
 
-  // 🔁 SAFE RECONNECT (NO SPAM)
+  // 🔁 CLEAN DISCONNECT + SAFE RECONNECT
   bot.on("end", () => {
     console.log("❌ Disconnected");
 
     botRunning = false;
+    authed = false;
+
+    // ✅ ensure old session is CLOSED
+    if (bot) {
+      try {
+        bot.removeAllListeners();
+        bot.quit();
+      } catch (e) {}
+    }
+
+    bot = null;
 
     if (reconnecting) return;
     reconnecting = true;
 
-    const delay = 15000; // 15 seconds
+    const delay = 45000; // ⏱️ longer delay = prevents duplicate session
 
     console.log(`🔁 Reconnecting in ${delay / 1000}s...`);
 
@@ -125,10 +143,10 @@ function createBot() {
   });
 }
 
-// 🚀 Start
-setTimeout(createBot, 10000); // wait before first connect
+// 🚀 START (important delay)
+setTimeout(createBot, 20000);
 
-// 🌐 Keep Railway alive
+// 🌐 KEEP RAILWAY ALIVE
 require("http")
   .createServer((req, res) => {
     res.writeHead(200);
