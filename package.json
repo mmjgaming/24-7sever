@@ -1,0 +1,24 @@
+{
+  "name": "aternos-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.0.0"
+  },
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmjgaming/24-7sever.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mmjgaming/24-7sever/issues"
+  },
+  "homepage": "https://github.com/mmjgaming/24-7sever#readme"
+}
