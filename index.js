@@ -1,13 +1,17 @@
 const mineflayer = require("mineflayer");
 
+// Read from Railway variables
 const config = {
-  host: "yourserver.aternos.me",
-  port: 25565,
-  username: "AFK_Bot_1",
-  password: "123456"
+  host: process.env.HOST,
+  port: parseInt(process.env.MC_PORT) || 25565,
+  username: process.env.USERNAME,
+  password: process.env.PASSWORD
 };
 
-function startBot() {
+function createBot() {
+  console.log("🚀 Starting bot...");
+  console.log("Connecting to:", config.host + ":" + config.port);
+
   const bot = mineflayer.createBot({
     host: config.host,
     port: config.port,
@@ -15,54 +19,68 @@ function startBot() {
     version: false
   });
 
-  bot.on("spawn", () => {
-    console.log("✅ Bot joined");
+  // 🔌 Connected
+  bot.on("login", () => {
+    console.log("✅ Logged into server");
+  });
 
-    // Anti AFK (movement)
+  // 🎮 Spawned
+  bot.on("spawn", () => {
+    console.log("🎮 Bot spawned");
+
+    // Anti AFK movement
     setInterval(() => {
       bot.setControlState("forward", true);
       setTimeout(() => bot.setControlState("forward", false), 1000);
+
+      bot.setControlState("jump", true);
+      setTimeout(() => bot.setControlState("jump", false), 500);
     }, 20000);
   });
 
+  // 💬 Chat / system messages
   bot.on("message", (msg) => {
     const text = msg.toString().toLowerCase();
-    console.log(text);
+    console.log("📩", text);
 
-    // 🔐 Detect register
-    if (
-      text.includes("register") ||
-      text.includes("/register")
-    ) {
+    // Detect register
+    if (text.includes("register")) {
       bot.chat(`/register ${config.password} ${config.password}`);
-      console.log("📌 Register command sent");
+      console.log("📌 Sent /register");
     }
 
-    // 🔐 Detect login
-    if (
-      text.includes("login") ||
-      text.includes("/login")
-    ) {
+    // Detect login
+    if (text.includes("login")) {
       bot.chat(`/login ${config.password}`);
-      console.log("📌 Login command sent");
+      console.log("📌 Sent /login");
     }
   });
 
-  bot.on("end", () => {
-    console.log("❌ Disconnected... reconnecting in 5s");
-    setTimeout(startBot, 5000);
+  // ❌ Kicked
+  bot.on("kicked", (reason) => {
+    console.log("🚫 Kicked:", reason);
   });
 
+  // ⚠️ Error
   bot.on("error", (err) => {
     console.log("⚠️ Error:", err.message);
   });
+
+  // 🔁 Reconnect
+  bot.on("end", () => {
+    console.log("❌ Disconnected. Reconnecting in 5 seconds...");
+    setTimeout(createBot, 5000);
+  });
 }
 
-startBot();
+// Start bot
+createBot();
 
-// Keep Railway alive (IMPORTANT)
+
+// 🌐 Keep Railway alive
 require("http")
   .createServer((req, res) => {
-    res.end("Bot running");
+    res.writeHead(200);
+    res.end("Bot is running");
   })
   .listen(process.env.PORT || 3000);
