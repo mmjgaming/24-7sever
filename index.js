@@ -1,3 +1,4 @@
+
 const mineflayer = require("mineflayer");
 
 const config = {
@@ -7,120 +8,116 @@ const config = {
   password: process.env.PASSWORD
 };
 
-if (!config.host || !config.username) {
-  console.log("❌ Missing ENV variables (HOST / USERNAME)");
-  process.exit(1);
-}
-
-let bot = null;
 let botRunning = false;
 let reconnecting = false;
-let authed = false;
 
 function createBot() {
-  if (botRunning) return;
+  if (botRunning) {
+    console.log("⚠️ Bot already running, skipping...");
+    return;
+  }
 
   botRunning = true;
-  authed = false;
-
   console.log("🚀 Starting bot...");
-  console.log(`🌐 ${config.host}:${config.port}`);
-  console.log(`👤 Username: ${config.username}`);
+  console.log(Connecting to: ${config.host}:${config.port});
+
+  let bot;
+  let authed = false;
 
   try {
     bot = mineflayer.createBot({
       host: config.host,
       port: config.port,
       username: config.username,
+      version: "1.21.1",
       auth: "offline"
-      // ❌ removed version (auto detect)
     });
   } catch (err) {
-    console.log("💥 Creation failed:", err.message);
+    console.log("💥 Bot creation failed:", err.message);
     botRunning = false;
-    return setTimeout(createBot, 30000);
+    return setTimeout(createBot, 10000);
   }
 
+  // ✅ Login
   bot.on("login", () => {
-    console.log("✅ Logged in");
+    console.log("✅ Logged into server");
   });
 
+  // 🎮 Spawn
   bot.on("spawn", () => {
-    console.log("🎮 Spawned");
+    console.log("🎮 Spawned — waiting for login/register...");
   });
 
+  // 💬 AUTH SYSTEM (FIXED)
   bot.on("messagestr", (msg) => {
     const text = msg.toLowerCase();
     console.log("📩", text);
 
     if (!authed && text.includes("register")) {
       setTimeout(() => {
-        bot.chat(`/register ${config.password} ${config.password}`);
+        bot.chat(/register ${config.password} ${config.password});
+        console.log("📌 Sent /register");
       }, 4000);
     }
 
     if (!authed && text.includes("login")) {
       setTimeout(() => {
-        bot.chat(`/login ${config.password}`);
+        bot.chat(/login ${config.password});
+        console.log("📌 Sent /login");
       }, 4000);
     }
 
+    // ✅ detect successful login
     if (
       text.includes("logged in") ||
-      text.includes("welcome") ||
-      text.includes("success")
+      text.includes("successfully") ||
+      text.includes("welcome")
     ) {
-      if (!authed) {
-        authed = true;
-        console.log("✅ AUTH COMPLETE");
-        startAfk();
-      }
+      authed = true;
+      console.log("✅ AUTH COMPLETE");
+
+      startAfk(bot);
     }
   });
 
-  function startAfk() {
-    console.log("🚶 AFK started");
+  // 🧠 AFK AFTER LOGIN ONLY
+  function startAfk(bot) {
+    console.log("🚶 Starting AFK system");
 
     setInterval(() => {
-      if (!bot || !bot.entity) return;
+      if (!bot.entity) return;
 
       bot.setControlState("jump", true);
       setTimeout(() => bot.setControlState("jump", false), 400);
 
       bot.setControlState("forward", true);
       setTimeout(() => bot.setControlState("forward", false), 800);
+
     }, 30000);
   }
 
+  // ❌ Kicked
   bot.on("kicked", (reason) => {
     console.log("🚫 Kicked:", reason);
   });
 
+  // ⚠️ Error
   bot.on("error", (err) => {
     console.log("⚠️ Error:", err.message);
   });
 
+  // 🔁 SAFE RECONNECT (NO SPAM)
   bot.on("end", () => {
     console.log("❌ Disconnected");
 
     botRunning = false;
-    authed = false;
-
-    try {
-      if (bot) {
-        bot.removeAllListeners();
-        bot.quit();
-      }
-    } catch (e) {}
-
-    bot = null;
 
     if (reconnecting) return;
     reconnecting = true;
 
-    const delay = 45000;
+    const delay = 15000; // 15 seconds
 
-    console.log(`🔁 Reconnecting in ${delay / 10}s...`);
+    console.log(🔁 Reconnecting in ${delay / 1000}s...);
 
     setTimeout(() => {
       reconnecting = false;
@@ -129,11 +126,13 @@ function createBot() {
   });
 }
 
-setTimeout(createBot, 15000);
+// 🚀 Start
+setTimeout(createBot, 10000); // wait before first connect
 
-// keep alive
+// 🌐 Keep Railway alive
 require("http")
   .createServer((req, res) => {
+    res.writeHead(200);
     res.end("Bot is running");
   })
-  .listen(process.env.PORT || 3000);
+  .listen(process.env.PORT || 3000); 
