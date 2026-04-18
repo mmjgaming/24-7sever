@@ -120,7 +120,7 @@ function createBot() {
 
     const delay = 45000;
 
-    console.log(`🔁 Reconnecting in ${delay / 1000}s...`);
+    console.log(`🔁 Reconnecting in ${delay / 10}s...`);
 
     setTimeout(() => {
       reconnecting = false;
